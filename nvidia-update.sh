@@ -14,7 +14,7 @@ REVISION=
 
 function usage() {
 	echo "Usage: sudo ./$(basename "$0") [--force|-f] [revision]"
-	echo "\nIf revision is not supplied, the latest whitelisted driver will be downloaded."
+	echo "If revision is not supplied, the latest whitelisted driver will be downloaded."
 	exit
 }
 
@@ -103,20 +103,20 @@ if [ -f "$CURRENT_INFO_PATH" ]; then
 fi
 
 if [[ "$CURRENT_BUNDLE_STRING" =~ "$REVISION" ]] && [[ "$FORCE" != "true" ]]; then
-	echo "\n$REVISION is already installed."
+	echo "$REVISION is already installed."
 	exit
 fi
 
 if [[ -z "$PKG_URL" ]]; then
 	if [[ -z "$REVISION" ]]; then
-		echo "\nCould not find a release for your OS.\n\nThe latest recommended release is:"
+		echo "Could not find a release for your OS."
+		echo "The latest recommended release is:"
 		echo "$LATEST_VERSION"
 
 		if [[ "$CURRENT_BUNDLE_STRING" =~ "$LATEST_VERSION" ]] && [[ "$FORCE" != "true" ]]; then
 			echo "which is already installed."
 			exit
 		else
-			echo
 			read -p "Do you want to install that now? [Y/n]" -n 1 -r
 
 			if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -127,18 +127,18 @@ if [[ -z "$PKG_URL" ]]; then
 			fi
 		fi
 	else
-		echo "\nUnknown revision: $REVISION"
+		echo "Unknown revision: $REVISION"
 		exit
 	fi
 fi
 
 PKG_PATH=$(mktemppkg)
 
-echo "\nDownloading $REVISION drivers..."
+echo "Downloading $REVISION drivers..."
 curl $PKG_URL -o $PKG_PATH
 
 if [[ "$PKG_OS" != "$SYSTEM_BUILD" ]]; then
-	echo "\nPatching package..."
+	echo "Patching package..."
 
 	TEMP_DIR=$(mktemp -d)
 	EXPANDED_DIR=$TEMP_DIR/expanded
@@ -166,7 +166,7 @@ if [[ "$PKG_OS" != "$SYSTEM_BUILD" ]]; then
 	$PLISTBUDDY -c "Set IOKitPersonalities:NVDAStartup:NVDARequiredOS $SYSTEM_BUILD" Library/Extensions/NVDAStartupWeb.kext/Contents/Info.plist
 	echo "Patched extension."
 
-	echo "\nRepackaging..."
+	echo "Repackaging..."
 
 	find . | cpio -o --quiet | gzip -c > $PAYLOAD_PATH
 	mkbom . $BOM_PATH
@@ -187,16 +187,17 @@ fi
 UNINSTALL_PKG_PATH="/Library/PreferencePanes/NVIDIA Driver Manager.prefPane/Contents/MacOS/NVIDIA Web Driver Uninstaller.app/Contents/Resources/NVUninstall.pkg"
 
 if [[ -f "$UNINSTALL_PKG_PATH" ]]; then
-	echo "\nUninstalling previous drivers..."
+	echo "Uninstalling previous drivers..."
 	installer -pkg "$UNINSTALL_PKG_PATH" -target /
 fi
 
 # Clean up after misbehaved scripts that manually install things to the wrong location (e.g. webdriver.sh)
 rm -rf /Library/GPUBundles/GeForce*Web.bundle
 
-echo "\nInstalling new drivers..."
+echo "Installing new drivers..."
 installer -pkg $PKG_PATH -target /
 rm $PKG_PATH
 
-echo "\nDone.\nPlease restart your system."
+echo "Done."
+echo "Please restart your system."
 
