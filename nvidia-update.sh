@@ -56,20 +56,22 @@ VERSIONS=$($PLISTBUDDY -c "Print updates:" $UPDATE_PLIST | grep "version" | awk 
 VERSION_COUNT=$(echo "$VERSIONS" | wc -l | xargs)
 
 found_os=false
-LATEST_WHITELISTED=
+LATEST_VERSION=
+LATEST_URL=
 
 for ((i=0; i<VERSION_COUNT; i++)); do
 	version=$($PLISTBUDDY -c "Print updates:$i:version" $UPDATE_PLIST)
 	os=$($PLISTBUDDY -c "Print updates:$i:OS" $UPDATE_PLIST)
 	url=$($PLISTBUDDY -c "Print updates:$i:downloadURL" $UPDATE_PLIST)
 
-	if [[ -z $REVISION ]]; then
+	if [[ -z "$REVISION" ]]; then
 		blacklisted=false
 
 		if [[ " ${BLACKLIST[@]} " =~ " ${version} " ]]; then
 			blacklisted=true
-		elif [[ -z $LATEST_WHITELISTED ]]; then
-			LATEST_WHITELISTED=$version
+		elif [[ -z "$LATEST_VERSION" ]]; then
+			LATEST_VERSION=$version
+			LATEST_URL=$url
 		fi
 
 		if [[ "$found_os" == "true" ]] || [[ "$os" == "$SYSTEM_BUILD" ]]; then
@@ -105,19 +107,29 @@ if [[ "$CURRENT_BUNDLE_STRING" =~ "$REVISION" ]] && [[ "$FORCE" != "true" ]]; th
 	exit
 fi
 
-if [[ -z $PKG_URL ]]; then
-	if [[ -z $REVISION ]]; then
+if [[ -z "$PKG_URL" ]]; then
+	if [[ -z "$REVISION" ]]; then
 		echo "\nCould not find a release for your OS.\n\nThe latest recommended release is:"
-		echo "$LATEST_WHITELISTED"
+		echo "$LATEST_VERSION"
 
-		if [[ "$CURRENT_BUNDLE_STRING" =~ "$LATEST_WHITELISTED" ]]; then
+		if [[ "$CURRENT_BUNDLE_STRING" =~ "$LATEST_VERSION" ]] && [[ "$FORCE" != "true" ]]; then
 			echo "which is already installed."
+			exit
+		else
+			echo
+			read -p "Do you want to install that now? [Y/n]" -n 1 -r
+
+			if [[ $REPLY =~ ^[Yy]$ ]]; then
+				REVISION=$LATEST_VERSION
+				PKG_URL=$LATEST_URL
+			else
+				exit
+			fi
 		fi
 	else
 		echo "\nUnknown revision: $REVISION"
+		exit
 	fi
-
-	exit
 fi
 
 PKG_PATH=$(mktemppkg)
