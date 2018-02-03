@@ -2,11 +2,6 @@
 
 set -e
 
-if [[ $(whoami) != "root" ]]; then
-	echo "Must be run as root (sudo)."
-	exit
-fi
-
 PLISTBUDDY=/usr/libexec/PlistBuddy
 SYSTEM_BUILD=$(system_profiler SPSoftwareDataType | grep 'System Version:' | cut -d '(' -f 2 | cut -d ')' -f 1)
 
@@ -18,7 +13,7 @@ FORCE=false
 REVISION=
 
 function usage() {
-	echo "Usage: $(basename "$0") [--force|-f] [revision]"
+	echo "Usage: sudo ./$(basename "$0") [--force|-f] [revision]"
 	echo "\nIf revision is not supplied, the latest whitelisted driver will be downloaded."
 	exit
 }
@@ -44,6 +39,11 @@ elif [[ $# -gt 0 ]]; then
 	else
 		REVISION=$1
 	fi
+fi
+
+if [[ $(whoami) != "root" ]]; then
+	echo "Must be run as root (sudo)."
+	exit
 fi
 
 echo "Downloading driver list..."
