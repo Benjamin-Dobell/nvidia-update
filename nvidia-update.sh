@@ -76,7 +76,7 @@ printf "\nDownloading driver list...\n"
 
 UPDATE_PLIST=$(mktemp)
 
-curl https://gfe.nvidia.com/mac-update -o $UPDATE_PLIST
+curl $UPDATE_URL -o $UPDATE_PLIST
 
 VERSIONS=$($PLISTBUDDY -c "Print updates:" $UPDATE_PLIST | grep "version" | awk -v N=3 '{print $N}')
 VERSION_COUNT=$(echo "$VERSIONS" | wc -l | xargs)
