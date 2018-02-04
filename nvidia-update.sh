@@ -3,17 +3,27 @@
 set -e
 
 PLISTBUDDY=/usr/libexec/PlistBuddy
-SYSTEM_BUILD=$(system_profiler SPSoftwareDataType | grep 'System Version:' | cut -d '(' -f 2 | cut -d ')' -f 1)
 
 BLACKLIST_URL=https://raw.githubusercontent.com/Benjamin-Dobell/nvidia-update/master/BLACKLIST
 UPDATE_URL=https://gfe.nvidia.com/mac-update
+
+SYSTEM_BUILD=$(system_profiler SPSoftwareDataType | grep 'System Version:' | cut -d '(' -f 2 | cut -d ')' -f 1)
+
+CURRENT_INFO_PATH=/Library/Extensions/NVDAStartupWeb.kext/Contents/Info.plist
+CURRENT_BUNDLE_STRING=
+CURRENT_REQUIRED_OS=
+
+if [ -f "$CURRENT_INFO_PATH" ]; then
+	CURRENT_BUNDLE_STRING=$($PLISTBUDDY -c "Print CFBundleGetInfoString" $CURRENT_INFO_PATH)
+	CURRENT_REQUIRED_OS=$($PLISTBUDDY -c "Print IOKitPersonalities:NVDAStartup:NVDARequiredOS" $CURRENT_INFO_PATH)
+fi
 
 FORCE=false
 REVISION=
 
 function usage() {
 	printf "Usage: ./$(basename "$0") [--force|-f] [revision]\n"
-	printf "\nIf revision is not supplied, the latest whitelisted driver will be downloaded.\n"
+	printf "\nIf revision is not supplied, the latest non-blacklisted driver will be used.\n"
 	exit
 }
 
@@ -21,8 +31,21 @@ function mktemppkg() {
 	echo "$(mktemp $TMPDIR/$(uuidgen).pkg)"
 }
 
-realpath() {
+function realpath() {
     [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
+}
+
+function patch_installed() {
+	if [[ "$CURRENT_REQUIRED_OS" != "$SYSTEM_BUILD" ]]; then
+		printf "\n"
+		read -p "Your existing drivers need patching to run. Patch them? [Y/n] " -n 1 -r
+		printf "\n"
+
+		if [[ $REPLY =~ ^[Yy]$ ]]; then
+			sudo $PLISTBUDDY -c "Set IOKitPersonalities:NVDAStartup:NVDARequiredOS $SYSTEM_BUILD" $CURRENT_INFO_PATH
+			printf "\nDone.\nPlease restart your system.\n"
+		fi
+	fi
 }
 
 if [[ $# -gt 2 ]]; then
@@ -84,6 +107,7 @@ for ((i=0; i<VERSION_COUNT; i++)); do
 				REVISION=$version
 				PKG_URL=$url
 				PKG_OS=$os
+				printf "\nThe latest driver revision is $REVISION\n"
 				break
 			fi
 		fi
@@ -98,15 +122,9 @@ done
 
 rm $UPDATE_PLIST
 
-CURRENT_INFO_PATH=/Library/Extensions/NVDAStartupWeb.kext/Contents/Info.plist
-CURRENT_BUNDLE_STRING=
-
-if [ -f "$CURRENT_INFO_PATH" ]; then
-	CURRENT_BUNDLE_STRING=$($PLISTBUDDY -c "Print CFBundleGetInfoString" $CURRENT_INFO_PATH)
-fi
-
 if [[ "$CURRENT_BUNDLE_STRING" =~ "$REVISION" ]] && [[ "$FORCE" != "true" ]]; then
 	printf "\n$REVISION is already installed.\n"
+	patch_installed
 	exit
 fi
 
@@ -116,15 +134,18 @@ if [[ -z "$PKG_URL" ]]; then
 
 		if [[ "$CURRENT_BUNDLE_STRING" =~ "$LATEST_VERSION" ]] && [[ "$FORCE" != "true" ]]; then
 			printf "which is already installed.\n"
+			patch_installed
 			exit
 		else
-			echo
+			printf "\n"
 			read -p "Do you want to install that now? [Y/n] " -n 1 -r
+			printf "\n"
 
 			if [[ $REPLY =~ ^[Yy]$ ]]; then
 				REVISION=$LATEST_VERSION
 				PKG_URL=$LATEST_URL
 			else
+				patch_installed
 				exit
 			fi
 		fi
