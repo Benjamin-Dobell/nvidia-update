@@ -5,8 +5,7 @@ set -e
 PLISTBUDDY=/usr/libexec/PlistBuddy
 SYSTEM_BUILD=$(system_profiler SPSoftwareDataType | grep 'System Version:' | cut -d '(' -f 2 | cut -d ')' -f 1)
 
-BLACKLIST=(387.10.10.10.25.156 387.10.10.10.25.157)
-
+BLACKLIST_URL=https://raw.githubusercontent.com/Benjamin-Dobell/nvidia-update/master/BLACKLIST
 UPDATE_URL=https://gfe.nvidia.com/mac-update
 
 FORCE=false
@@ -45,6 +44,11 @@ if [[ $(whoami) != "root" ]]; then
 	echo "Must be run as root (sudo)."
 	exit
 fi
+
+echo "Downloading driver blacklist..."
+
+BLACKLIST=
+while read -r version; do BLACKLIST+=("$version"); done <<<$(curl $BLACKLIST_URL)
 
 echo "Downloading driver list..."
 
