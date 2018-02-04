@@ -12,13 +12,17 @@ FORCE=false
 REVISION=
 
 function usage() {
-	echo "Usage: sudo ./$(basename "$0") [--force|-f] [revision]"
+	echo "Usage: ./$(basename "$0") [--force|-f] [revision]"
 	echo "If revision is not supplied, the latest whitelisted driver will be downloaded."
 	exit
 }
 
 function mktemppkg() {
 	echo "$(mktemp $TMPDIR/$(uuidgen).pkg)"
+}
+
+realpath() {
+    [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
 }
 
 if [[ $# -gt 2 ]]; then
@@ -38,11 +42,6 @@ elif [[ $# -gt 0 ]]; then
 	else
 		REVISION=$1
 	fi
-fi
-
-if [[ $(whoami) != "root" ]]; then
-	echo "Must be run as root (sudo)."
-	exit
 fi
 
 echo "Downloading driver blacklist..."
@@ -147,59 +146,53 @@ if [[ "$PKG_OS" != "$SYSTEM_BUILD" ]]; then
 	TEMP_DIR=$(mktemp -d)
 	EXPANDED_DIR=$TEMP_DIR/expanded
 
-	pkgutil --expand "$PKG_PATH" $EXPANDED_DIR
+	sudo pkgutil --expand "$PKG_PATH" $EXPANDED_DIR
 
 	rm $PKG_PATH
 
-	pushd $EXPANDED_DIR > /dev/null
-
-	cat Distribution | sed '/installation-check/d' > DistributionTEMP
-	mv DistributionTEMP Distribution
+	sudo cat $EXPANDED_DIR/Distribution | sed '/installation-check/d' | sudo tee $EXPANDED_DIR/DistributionTEMP > /dev/null
+	sudo mv $EXPANDED_DIR/DistributionTEMP $EXPANDED_DIR/Distribution
 
 	echo "Patched install requirements."
 
-	pushd *-NVWebDrivers.pkg > /dev/null
-
-	PAYLOAD_PATH=$(pwd)/Payload
-	BOM_PATH=$(pwd)/Bom
+	WEB_DRIVERS_PATH=$EXPANDED_DIR/$(ls $EXPANDED_DIR | grep NVWebDrivers.pkg)
+	PAYLOAD_PATH=$(realpath $WEB_DRIVERS_PATH/Payload)
+	BOM_PATH=$(realpath $WEB_DRIVERS_PATH/Bom)
 
 	PAYLOAD_TEMP_DIR=$(mktemp -d)
-	pushd $PAYLOAD_TEMP_DIR > /dev/null
 
-	cat $PAYLOAD_PATH | gunzip -dc | cpio -i --quiet
-	$PLISTBUDDY -c "Set IOKitPersonalities:NVDAStartup:NVDARequiredOS $SYSTEM_BUILD" Library/Extensions/NVDAStartupWeb.kext/Contents/Info.plist
+	(cd $PAYLOAD_TEMP_DIR; sudo cat $PAYLOAD_PATH | gunzip -dc | cpio -i --quiet)
+	$PLISTBUDDY -c "Set IOKitPersonalities:NVDAStartup:NVDARequiredOS $SYSTEM_BUILD" $PAYLOAD_TEMP_DIR/Library/Extensions/NVDAStartupWeb.kext/Contents/Info.plist
+	sudo chown -R root:wheel $PAYLOAD_TEMP_DIR/*
 	echo "Patched extension."
 
 	echo "Repackaging..."
 
-	find . | cpio -o --quiet | gzip -c > $PAYLOAD_PATH
-	mkbom . $BOM_PATH
+	(cd $PAYLOAD_TEMP_DIR; sudo find . | sudo cpio -o --quiet | gzip -c | sudo tee $PAYLOAD_PATH > /dev/null)
+	(cd $PAYLOAD_TEMP_DIR; sudo mkbom . $BOM_PATH)
 
-	popd > /dev/null
-	rm -rf $PAYLOAD_TEMP_DIR
-
-	popd > /dev/null
-	popd > /dev/null
+	sudo rm -rf $PAYLOAD_TEMP_DIR
 
 	PKG_PATH=$(mktemppkg)
 
-	pkgutil --flatten $EXPANDED_DIR $PKG_PATH
+	sudo pkgutil --flatten $EXPANDED_DIR $PKG_PATH
+	sudo chown $(id -un):$(id -gn) $PKG_PATH
 
-	rm -rf $TEMP_DIR
+	sudo rm -rf $TEMP_DIR
 fi
 
 UNINSTALL_PKG_PATH="/Library/PreferencePanes/NVIDIA Driver Manager.prefPane/Contents/MacOS/NVIDIA Web Driver Uninstaller.app/Contents/Resources/NVUninstall.pkg"
 
 if [[ -f "$UNINSTALL_PKG_PATH" ]]; then
 	echo "Uninstalling previous drivers..."
-	installer -pkg "$UNINSTALL_PKG_PATH" -target /
+	sudo installer -pkg "$UNINSTALL_PKG_PATH" -target /
 fi
 
 # Clean up after misbehaved scripts that manually install things to the wrong location (e.g. webdriver.sh)
 rm -rf /Library/GPUBundles/GeForce*Web.bundle
 
 echo "Installing new drivers..."
-installer -pkg $PKG_PATH -target /
+sudo installer -pkg $PKG_PATH -target /
 rm $PKG_PATH
 
 echo "Done."
