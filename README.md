@@ -40,9 +40,9 @@ curl -O https://raw.githubusercontent.com/Benjamin-Dobell/nvidia-update/master/n
 
 ```
 Usage: sudo ./nvidia-update.sh [--force|-f] [revision]
-
-If revision is not supplied, the latest whitelisted driver will be downloaded.
 ```
 
-`-f`/`--force` will allow you to reinstall a revision that is already installed.
+If `revision` is not supplied, the latest non-blacklisted driver will be used.
+
+`--force`/`-f` will allow you to reinstall a revision that is already installed.
 
