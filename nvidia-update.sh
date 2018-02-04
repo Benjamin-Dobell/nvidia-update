@@ -12,8 +12,8 @@ FORCE=false
 REVISION=
 
 function usage() {
-	echo "Usage: ./$(basename "$0") [--force|-f] [revision]"
-	echo "If revision is not supplied, the latest whitelisted driver will be downloaded."
+	printf "Usage: ./$(basename "$0") [--force|-f] [revision]\n"
+	printf "\nIf revision is not supplied, the latest whitelisted driver will be downloaded.\n"
 	exit
 }
 
@@ -44,12 +44,12 @@ elif [[ $# -gt 0 ]]; then
 	fi
 fi
 
-echo "Downloading driver blacklist..."
+printf "Downloading driver blacklist...\n"
 
 BLACKLIST=
 while read -r version; do BLACKLIST+=("$version"); done <<<$(curl $BLACKLIST_URL)
 
-echo "Downloading driver list..."
+printf "\nDownloading driver list...\n"
 
 UPDATE_PLIST=$(mktemp)
 
@@ -106,21 +106,20 @@ if [ -f "$CURRENT_INFO_PATH" ]; then
 fi
 
 if [[ "$CURRENT_BUNDLE_STRING" =~ "$REVISION" ]] && [[ "$FORCE" != "true" ]]; then
-	echo "$REVISION is already installed."
+	printf "\n$REVISION is already installed.\n"
 	exit
 fi
 
 if [[ -z "$PKG_URL" ]]; then
 	if [[ -z "$REVISION" ]]; then
-		echo "Could not find a release for your OS."
-		echo "The latest recommended release is:"
-		echo "$LATEST_VERSION"
+		printf "\nCould not find a release for your OS.\n\nThe latest recommended release is:\n $LATEST_VERSION\n"
 
 		if [[ "$CURRENT_BUNDLE_STRING" =~ "$LATEST_VERSION" ]] && [[ "$FORCE" != "true" ]]; then
-			echo "which is already installed."
+			printf "which is already installed.\n"
 			exit
 		else
-			read -p "Do you want to install that now? [Y/n]" -n 1 -r
+			echo
+			read -p "Do you want to install that now? [Y/n] " -n 1 -r
 
 			if [[ $REPLY =~ ^[Yy]$ ]]; then
 				REVISION=$LATEST_VERSION
@@ -130,18 +129,18 @@ if [[ -z "$PKG_URL" ]]; then
 			fi
 		fi
 	else
-		echo "Unknown revision: $REVISION"
+		printf "\nUnknown revision: $REVISION\n"
 		exit
 	fi
 fi
 
 PKG_PATH=$(mktemppkg)
 
-echo "Downloading $REVISION drivers..."
+printf "\nDownloading $REVISION drivers...\n"
 curl $PKG_URL -o $PKG_PATH
 
 if [[ "$PKG_OS" != "$SYSTEM_BUILD" ]]; then
-	echo "Patching package..."
+	printf "\nPatching package...\n"
 
 	TEMP_DIR=$(mktemp -d)
 	EXPANDED_DIR=$TEMP_DIR/expanded
@@ -153,7 +152,7 @@ if [[ "$PKG_OS" != "$SYSTEM_BUILD" ]]; then
 	sudo cat $EXPANDED_DIR/Distribution | sed '/installation-check/d' | sudo tee $EXPANDED_DIR/DistributionTEMP > /dev/null
 	sudo mv $EXPANDED_DIR/DistributionTEMP $EXPANDED_DIR/Distribution
 
-	echo "Patched install requirements."
+	printf "Patched install requirements.\n"
 
 	WEB_DRIVERS_PATH=$EXPANDED_DIR/$(ls $EXPANDED_DIR | grep NVWebDrivers.pkg)
 	PAYLOAD_PATH=$(realpath $WEB_DRIVERS_PATH/Payload)
@@ -164,9 +163,9 @@ if [[ "$PKG_OS" != "$SYSTEM_BUILD" ]]; then
 	(cd $PAYLOAD_TEMP_DIR; sudo cat $PAYLOAD_PATH | gunzip -dc | cpio -i --quiet)
 	$PLISTBUDDY -c "Set IOKitPersonalities:NVDAStartup:NVDARequiredOS $SYSTEM_BUILD" $PAYLOAD_TEMP_DIR/Library/Extensions/NVDAStartupWeb.kext/Contents/Info.plist
 	sudo chown -R root:wheel $PAYLOAD_TEMP_DIR/*
-	echo "Patched extension."
+	printf "Patched extension.\n"
 
-	echo "Repackaging..."
+	printf "\nRepackaging...\n"
 
 	(cd $PAYLOAD_TEMP_DIR; sudo find . | sudo cpio -o --quiet | gzip -c | sudo tee $PAYLOAD_PATH > /dev/null)
 	(cd $PAYLOAD_TEMP_DIR; sudo mkbom . $BOM_PATH)
@@ -184,17 +183,16 @@ fi
 UNINSTALL_PKG_PATH="/Library/PreferencePanes/NVIDIA Driver Manager.prefPane/Contents/MacOS/NVIDIA Web Driver Uninstaller.app/Contents/Resources/NVUninstall.pkg"
 
 if [[ -f "$UNINSTALL_PKG_PATH" ]]; then
-	echo "Uninstalling previous drivers..."
+	printf "\nUninstalling previous drivers...\n"
 	sudo installer -pkg "$UNINSTALL_PKG_PATH" -target /
 fi
 
 # Clean up after misbehaved scripts that manually install things to the wrong location (e.g. webdriver.sh)
 rm -rf /Library/GPUBundles/GeForce*Web.bundle
 
-echo "Installing new drivers..."
+printf "\nInstalling new drivers...\n"
 sudo installer -pkg $PKG_PATH -target /
 rm $PKG_PATH
 
-echo "Done."
-echo "Please restart your system."
+printf "\nDone.\nPlease restart your system.\n"
 
