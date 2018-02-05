@@ -209,7 +209,7 @@ if [[ -f "$UNINSTALL_PKG_PATH" ]]; then
 fi
 
 # Clean up after misbehaved scripts that manually install things to the wrong location (e.g. webdriver.sh)
-rm -rf /Library/GPUBundles/GeForce*Web.bundle
+sudo rm -rf /Library/GPUBundles/GeForce*Web.bundle
 
 printf "\nInstalling new drivers...\n"
 sudo installer -pkg $PKG_PATH -target /
