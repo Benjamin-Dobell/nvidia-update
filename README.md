@@ -34,12 +34,13 @@ You can clone this repository or download the script with the following command:
 
 ```
 curl -O https://raw.githubusercontent.com/Benjamin-Dobell/nvidia-update/master/nvidia-update.sh
+chmod 755 nvidia-update.sh
 ```
 
 ## Usage
 
 ```
-Usage: sudo ./nvidia-update.sh [--force|-f] [revision]
+Usage: ./nvidia-update.sh [--force|-f] [revision]
 ```
 
 If `revision` is not supplied, the latest non-blacklisted driver will be used.
