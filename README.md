@@ -14,7 +14,18 @@ bash <(curl -s https://raw.githubusercontent.com/Benjamin-Dobell/nvidia-update/m
 
 This script installs the _best_ (not necessarily the latest) official nVidia web drivers for your system.
 
-## Why not the latest?
+Specifically, it does the following:
+
+ * Checks for official driver updates for your version of macOS.
+ * Cross-references against a list of blacklisted drivers, that it'll avoid installing (by default).
+ * Properly uninstalls old drivers.
+ * Downloads and installs the latest non-blacklisted drivers.
+ * On-the-fly patches driver packages so they can be installed on your version of macOS (if necessary).
+ * Patches drivers that you've already installed, if they no longer match your macOS version i.e. post macOS update.
+
+Because this tool only uses official nVidia drivers and packages; even after patching macOS version requirements (if necessary), **the script operates perfectly with SIP enabled** (or disabled, it doesn't matter).
+
+## Why not always install the latest drivers?
 
 Sometimes nVidia releases drivers that have bugs or performance issues. This script maintains a blacklist of "bad" drivers that it won't install by default.
 
@@ -24,9 +35,17 @@ Presently, each nVidia driver release is tied to an exact version of macOS. Howe
 
 Patching does not involve changing the driver binaries, just a couple of configuration options in some text files.
 
+## What do I do after updating macOS to a new version?
+
+Simply run the script again, it'll take care of the rest, updating and/or patching drivers as necessary.
+
 # Install a specific driver version
 
-If you want to install a specific driver version, you must first download the script.
+```
+bash <(curl -s https://raw.githubusercontent.com/Benjamin-Dobell/nvidia-update/master/nvidia-update.sh) <revision>
+```
+
+Where `<revision>` is a driver version e.g. `378.10.10.10.25.106`
 
 # Downloading the script
 
