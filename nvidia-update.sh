@@ -208,8 +208,8 @@ if [[ -f "$UNINSTALL_PKG_PATH" ]]; then
 	sudo installer -pkg "$UNINSTALL_PKG_PATH" -target /
 fi
 
-# Clean up after misbehaved scripts that manually install things to the wrong location (e.g. webdriver.sh)
-sudo rm -rf /Library/GPUBundles/GeForce*Web.bundle
+# Try remove NVidia user-mode left-overs. Only possible if SIP is disabled.
+sudo rm -rf /Library/GPUBundles/GeForce*Web.bundle > /dev/null 2>&1 || true
 
 printf "\nInstalling new drivers...\n"
 sudo installer -pkg $PKG_PATH -target /
