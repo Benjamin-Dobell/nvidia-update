@@ -23,8 +23,6 @@ Specifically, it does the following:
  * On-the-fly patches driver packages so they can be installed on your version of macOS (if necessary).
  * Patches drivers that you've already installed, if they no longer match your macOS version i.e. post macOS update.
 
-Because this tool only uses official nVidia drivers and packages; even after patching macOS version requirements (if necessary), **the script operates perfectly with SIP enabled** (or disabled, it doesn't matter).
-
 ## Why not always install the latest drivers?
 
 Sometimes nVidia releases drivers that have bugs or performance issues. This script maintains a blacklist of "bad" drivers that it won't install by default.
@@ -34,6 +32,18 @@ Sometimes nVidia releases drivers that have bugs or performance issues. This scr
 Presently, each nVidia driver release is tied to an exact version of macOS. However, as described above, sometimes it's desirable to install a different release. This script will download the official drivers and patch them on-the-fly so that they can be loaded on your system.
 
 Patching does not involve changing the driver binaries, just a couple of configuration options in some text files.
+
+## Do I need to disable [SIP](https://support.apple.com/en-au/HT204899)?
+
+_No!_
+
+Unlike other alternative approaches that manually mess around with your file system, this tool uses official installers and drivers. Even after patching (where necessary) they install flawlessly on systems with SIP enabled.
+
+## Does this work on real Macs?
+
+_Yes!_
+
+No need to disable SIP, it just works.
 
 ## What do I do after updating macOS to a new version?
 
