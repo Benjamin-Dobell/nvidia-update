@@ -28,7 +28,7 @@ function usage() {
 }
 
 function mktemppkg() {
-	echo "$(mktemp $TMPDIR/$(uuidgen).pkg)"
+	echo "$(/usr/bin/mktemp $TMPDIR/$(uuidgen).pkg)"
 }
 
 function realpath() {
@@ -75,7 +75,7 @@ function update() {
 
 	printf "\nDownloading driver list...\n"
 
-	UPDATE_PLIST=$(mktemp)
+	UPDATE_PLIST=$(/usr/bin/mktemp)
 
 	curl $UPDATE_URL -o $UPDATE_PLIST
 
@@ -164,7 +164,7 @@ function update() {
 	if [[ "$PKG_OS" != "$SYSTEM_BUILD" ]]; then
 		printf "\nPatching package...\n"
 
-		TEMP_DIR=$(mktemp -d)
+		TEMP_DIR=$(/usr/bin/mktemp -d)
 		EXPANDED_DIR=$TEMP_DIR/expanded
 
 		sudo pkgutil --expand "$PKG_PATH" $EXPANDED_DIR
@@ -180,7 +180,7 @@ function update() {
 		PAYLOAD_PATH=$(realpath $WEB_DRIVERS_PATH/Payload)
 		BOM_PATH=$(realpath $WEB_DRIVERS_PATH/Bom)
 
-		PAYLOAD_TEMP_DIR=$(mktemp -d)
+		PAYLOAD_TEMP_DIR=$(/usr/bin/mktemp -d)
 
 		(cd $PAYLOAD_TEMP_DIR; sudo cat $PAYLOAD_PATH | gunzip -dc | cpio -i --quiet)
 		$PLISTBUDDY -c "Set IOKitPersonalities:NVDAStartup:NVDARequiredOS $SYSTEM_BUILD" $PAYLOAD_TEMP_DIR/Library/Extensions/NVDAStartupWeb.kext/Contents/Info.plist
