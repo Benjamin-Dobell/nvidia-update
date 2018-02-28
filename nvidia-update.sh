@@ -213,7 +213,7 @@ function update() {
 	sudo rm -rf /Library/GPUBundles/GeForce*Web.bundle > /dev/null 2>&1 || true
 
 	printf "\nInstalling new drivers...\n"
-	sudo installer -pkg "$PKG_PATH" -target /
+	sudo installer -pkg "$PKG_PATH" -allowUntrusted -target /
 	rm "$PKG_PATH"
 
 	printf "\nDone.\nPlease restart your system.\n"
