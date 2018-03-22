@@ -197,7 +197,7 @@ function update() {
 		PKG_PATH="$(temp_pkg_path)"
 
 		sudo pkgutil --flatten "$EXPANDED_DIR" "$PKG_PATH"
-		sudo chown $(id -un):$(id -gn) "$PKG_PATH"
+		sudo chown "$(id -un):$(id -gn)" "$PKG_PATH"
 
 		sudo rm -rf "$TEMP_DIR"
 	fi
